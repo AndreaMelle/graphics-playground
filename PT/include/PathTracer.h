@@ -4,10 +4,24 @@
 #include "glm/glm.hpp"
 #include <memory>
 #include <vector>
-#include <random>
+
 #include <exception>
 #include <stdio.h>
 #include <stdlib.h>
+#include <chrono>
+#include <thread>
+#include <iostream>
+#include "ptRandom.h"
+
+#ifndef M_PI
+#define M_PI        3.14159265358979323846264338327950288   /* pi             */
+#endif
+
+#ifndef M_1_PI
+#define M_1_PI      0.318309886183790671537767526745028724  /* 1/pi           */
+#endif
+
+#define USE_MT
 
 namespace pt
 {
@@ -24,7 +38,7 @@ namespace pt
 		glm::dvec3 dir;
 
 		Ray() = delete;
-		Ray(const Ray& other) = delete;
+		//Ray(const Ray& other) = delete;
 		void operator=(const Ray& other) = delete;
 	};
 
@@ -119,7 +133,7 @@ namespace pt
 		Scene(){}
 		std::vector<std::shared_ptr<Renderable> >	renderables;
 
-		Scene(const Scene& other) = delete;
+		//Scene(const Scene& other) = delete;
 		void operator=(const Scene& other) = delete;
 	};
 
@@ -166,21 +180,7 @@ namespace pt
         return out_t < 1e20;//std::numeric_limits<double>::max();
 	}
 
-	class URNG
-	{
-	public:
-		URNG()
-		{
-            //gen = std::default_random_engine; //std::mt19937(rd());
-			udist = std::uniform_real_distribution<double>(0.0, 1.0);
-		}
-
-		double operator()() { return udist(gen); }
-
-		//std::random_device rd;
-		std::default_random_engine gen;
-		std::uniform_real_distribution<double> udist;
-	};
+	
 
 	// E: whether we are considering emittance or not
 	glm::dvec3 radiance(const Ray& ray, const Scene& scene, int depth, URNG& rng, int E = 1)
@@ -272,6 +272,69 @@ namespace pt
 	class PathTracer
 	{
 	public:
+
+		static std::atomic<int> tileCounter;
+
+		static void TraceTile(const Scene& scene,
+			unsigned int from_x,
+			unsigned int to_x,
+			unsigned int from_y,
+			unsigned int to_y,
+			unsigned int width,
+			unsigned int height,
+			unsigned int samples,
+			const Ray& cam,
+			glm::dvec3 cx,
+			glm::dvec3 cy,
+			glm::dvec3* out_buffer)
+		{
+			glm::dvec3 r; //helper for accumulating colors
+			URNG rng;
+			PcgHash hash;
+
+			for (unsigned int y = from_y; y < to_y; ++y)
+			{
+				for (unsigned int x = from_x; x < to_x; ++x)
+				{
+					// For each pixel we do 2x2 subpixels, and for each subpixel we draw samples samples
+					for (unsigned int sy = 0, i = (height - y - 1) * width + x; sy < 2; ++sy)
+					{
+						/*
+						 * In original implementation, rng gets seeded at each pixel
+						 * therefore we can't use a global generator, because other threads would see him any time?
+						 */
+
+						rng.seed(hash(x, y));
+
+						for (unsigned int sx = 0; sx < 2; ++sx, r = glm::dvec3(0))
+						{
+							for (int s = 0; s < samples; ++s)
+							{
+								// tent filter based sampling of the 2x2 area
+								double r1 = 2.0 * rng();
+								double r2 = 2.0 * rng();
+								double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+								double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+
+								glm::dvec3 d = cx * (((sx + .5 + dx) / 2 + x) / width - .5)
+									+ cy * (((sy + .5 + dy) / 2 + y) / height - .5)
+									+ cam.dir;
+
+								// weighted by num samples
+								r = r + radiance(Ray(cam.origin + d * 140.0, glm::normalize(d)), scene, 0, rng) * (1. / (double)samples);
+							}
+
+							// what's with the .25?
+							out_buffer[i] = out_buffer[i] + glm::dvec3(clamp(r.x), clamp(r.y), clamp(r.z)) * 0.25;
+
+						}
+					}
+				}
+			}
+
+			tileCounter++;
+		}
+
 		static void Trace(const Scene& scene,
 			unsigned int width,
 			unsigned int height,
@@ -279,7 +342,8 @@ namespace pt
 			const glm::dvec3& camPos,
 			const glm::dvec3& camDir,
 			double camFovRadians,
-            char* out_buffer)
+            char* out_buffer,
+			double* rendertime)
 		{
 			samples /= 4; // dim of multi-sampled area
 			samples = (samples > 0) ? samples : 1;
@@ -291,43 +355,64 @@ namespace pt
 			glm::dvec3 r; //helper for accumulating colors
 			glm::dvec3* buffer = new glm::dvec3[width * height]; //buffer for image rendering
 
-			URNG rng;
+			tileCounter = 0;
 
-			// Main path tracing loop
-			for (unsigned int y = 0; y < height; ++y)
+			unsigned int num_tiles_x = 4;
+			unsigned int num_tiles_y = 2;
+
+			assert((width % num_tiles_x) == 0);
+			assert((height % num_tiles_y) == 0);
+
+			unsigned int tile_width = width / num_tiles_x;
+			unsigned int tile_height = height / num_tiles_y;
+
+			std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+
+			start = std::chrono::high_resolution_clock::now();
+
+#ifdef USE_MT
+			std::vector<std::shared_ptr<std::thread> > allThreads;
+#endif
+
+			for (int j = 0; j < num_tiles_y; ++j)
 			{
-				for (unsigned int x = 0; x < width; ++x)
+				for (int i = 0; i < num_tiles_x; ++i)
 				{
-					// For each pixel we do 2x2 subpixels, and for each subpixel we draw samples samples
-					for (unsigned int sy = 0, i = (height - y - 1) * width + x; sy < 2; ++sy)
-					{
-						for (unsigned int sx = 0; sx < 2; ++sx, r = glm::dvec3(0))
-						{
-							for (int s = 0; s < samples; ++s)
-							{
-								// tent filter based sampling of the 2x2 area
-								//TODO: do we need to seed this?
-								double r1 = 2.0 * rng();
-								double r2 = 2.0 * rng();
-								double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-								double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+					unsigned int from_x = i * tile_width;
+					unsigned int from_y = j * tile_height;
+					unsigned int to_x = from_x + tile_width;
+					unsigned int to_y = from_y + tile_height;
 
-								glm::dvec3 d =	  cx * (((sx + .5 + dx) / 2 + x) / width - .5)
-												+ cy * (((sy + .5 + dy) / 2 + y) / height - .5)
-												+ cam.dir;
-
-								// weighted by num samples
-								r = r + radiance(Ray(cam.origin + d * 140.0, glm::normalize(d)), scene, 0, rng) * (1. / (double)samples);
-							}
-
-							// what's with the .25?
-							buffer[i] = buffer[i] + glm::dvec3(clamp(r.x), clamp(r.y), clamp(r.z)) * 0.25;
-
-						}
-					}
+#ifdef USE_MT
+					allThreads.push_back(std::shared_ptr<std::thread>(new std::thread(TraceTile,
+#else
+					TraceTile(
+#endif
+						scene,
+						from_x, to_x, from_y, to_y,
+						width, height, samples,
+						cam, cx, cy,
+						buffer)
+#ifdef USE_MT
+						))
+#endif
+						;
 				}
 			}
+
+#ifdef USE_MT
+			while (tileCounter < (num_tiles_x * num_tiles_y))
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+			for (int i = 0; i < allThreads.size(); ++i)
+				allThreads[i]->join();
+#endif
             
+			end = std::chrono::high_resolution_clock::now();
+
+			std::chrono::duration<double> elapsed_seconds = end - start;
+			*rendertime = elapsed_seconds.count();
+
             unsigned int j = 0;
             for(unsigned int i = 0; i < width * height; ++i)
             {
@@ -351,5 +436,7 @@ namespace pt
 	};
 
 }
+
+std::atomic<int> pt::PathTracer::tileCounter = 0;
 
 #endif //__PATH_TRACER_H__
