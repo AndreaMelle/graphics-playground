@@ -229,8 +229,10 @@ void PTApp::setup()
     renderFrame = false;
 
 	frameThread = std::shared_ptr<std::thread>(new std::thread([this](){
+        
+        std::shared_ptr<pt::PathTracer>  _pt = std::shared_ptr<pt::PathTracer>(new pt::PathTracer());
 
-        pt::PathTracer::Trace(ptScene,
+        _pt->Trace(ptScene,
                               frameBufferWidth,
                               frameBufferHeight,
                               8,
@@ -289,5 +291,5 @@ void PTApp::cleanup()
 }
 
 CINDER_APP(PTApp, RendererGl, [](App::Settings* settings) {
-	settings->setConsoleWindowEnabled(true);
+	//settings->setConsoleWindowEnabled(true);
 })

@@ -183,7 +183,7 @@ namespace pt
 	
 
 	// E: whether we are considering emittance or not
-	glm::dvec3 radiance(const Ray& ray, const Scene& scene, int depth, URNG& rng, int E = 1)
+	static glm::dvec3 radiance(const Ray& ray, const Scene& scene, int depth, URNG& rng, int E = 1)
 	{
 		double t; size_t idx = 0;
 		if (!intersect(ray, scene, t, idx)) return glm::dvec3(0);
@@ -272,10 +272,9 @@ namespace pt
 	class PathTracer
 	{
 	public:
+		std::atomic<int> tileCounter;
 
-		static std::atomic<int> tileCounter;
-
-		static void TraceTile(const Scene& scene,
+		void TraceTile(const Scene& scene,
 			unsigned int from_x,
 			unsigned int to_x,
 			unsigned int from_y,
@@ -335,7 +334,7 @@ namespace pt
 			tileCounter++;
 		}
 
-		static void Trace(const Scene& scene,
+		void Trace(const Scene& scene,
 			unsigned int width,
 			unsigned int height,
 			unsigned int samples,
@@ -384,7 +383,7 @@ namespace pt
 					unsigned int to_y = from_y + tile_height;
 
 #ifdef USE_MT
-					allThreads.push_back(std::shared_ptr<std::thread>(new std::thread(TraceTile,
+                    allThreads.push_back(std::shared_ptr<std::thread>(new std::thread(&PathTracer::TraceTile, this,
 #else
 					TraceTile(
 #endif
@@ -430,13 +429,12 @@ namespace pt
 			delete[] buffer;
 		}
 
-		PathTracer() = delete;
+        PathTracer() {}
 		PathTracer(const PathTracer& other) = delete;
 		void operator=(const PathTracer& other) = delete;
 	};
 
 }
 
-std::atomic<int> pt::PathTracer::tileCounter = 0;
 
 #endif //__PATH_TRACER_H__
