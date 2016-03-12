@@ -116,6 +116,9 @@ int main(int argc, const char * argv[])
     
     assertFatal(clStatus, "Could not read the buffer");
     
+    double avg = 0.0f;
+    double weight = 1.0f / (double)(img_width * img_height);
+    
     /* combine the result */
     FILE *f = fopen("noise.ppm", "w");         // Write image to PPM file.
     fprintf(f, "P3\n%d %d\n%d\n", (int)img_width, (int)img_height, 255);
@@ -123,7 +126,12 @@ int main(int argc, const char * argv[])
     {
 //        printf("%d %d %d %d", img[i], img[i + 1], img[i + 2], img[i + 3]);
         fprintf(f,"%d %d %d ", img[i], img[i], img[i]);
+        avg += ((double)img[i] * weight);
     }
+    
+    fclose(f);
+    
+    std::cout << "Average of noise: " << (unsigned int)avg << "\n";
     
     std::cout << "Total time: " << total_time * 0.001 << " microsec \n";
     

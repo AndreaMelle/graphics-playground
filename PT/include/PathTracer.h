@@ -12,6 +12,8 @@
 #include <thread>
 #include <iostream>
 #include "ptRandom.h"
+#include "ptUtil.h"
+#include "ptGeometry.h"
 
 #ifndef M_PI
 #define M_PI        3.14159265358979323846264338327950288   /* pi             */
@@ -25,73 +27,6 @@
 
 namespace pt
 {
-	const double EPSILON = 1e-4; // 1e-4 in the original implementation
-
-	/*
-	 * A parametric line of the form P(t) = origin + t * dir
-	*/
-	class Ray
-	{
-	public:
-		Ray(const glm::dvec3& _origin, const glm::dvec3& _dir) : origin(_origin), dir(_dir) {}
-		glm::dvec3 origin;
-		glm::dvec3 dir;
-
-		Ray() = delete;
-		//Ray(const Ray& other) = delete;
-		void operator=(const Ray& other) = delete;
-	};
-
-	class Primitive
-	{
-	public:
-		Primitive(){}
-		virtual double intersect(const Ray& ray) const = 0;
-		virtual glm::dvec3 normalAt(const glm::dvec3& point) const = 0;
-        virtual glm::dvec3 getCenter() const = 0;
-        virtual double getRadius() const = 0;
-		Primitive(const Primitive& other) = delete;
-		void operator=(const Primitive& other) = delete;
-	};
-
-	/*
-	 * The basic primitive supported by the path tracer
-	 * (P - Center)^2 - radius^2 = 0
-	*/
-	class Sphere : public Primitive
-	{
-	public:
-		Sphere(const glm::dvec3& _center, double _radius) : center(_center), radius(_radius) {}
-		glm::dvec3	center;
-		double		radius;
-
-		/*
-		 * Compute ray-sphere intersection
-		*/
-		double intersect(const Ray& ray) const
-		{
-			glm::dvec3 o_to_sphere = center - ray.origin;
-			double t = EPSILON;
-			double b = glm::dot(o_to_sphere, ray.dir); // 0.5 * b in quadratic equation of intersection
-			double det = b * b - glm::dot(o_to_sphere, o_to_sphere) + radius * radius;
-			if (det < 0) return 0; // ray misses sphere
-			det = sqrt(det);
-			return (t = b - det) > EPSILON ? t : ((t = b + det) > EPSILON ? t : 0); // smaller positive t, or 0 if sphere behind ray
-		}
-
-		glm::dvec3 normalAt(const glm::dvec3& point) const
-		{
-			return glm::normalize((point - center));
-		}
-        
-        glm::dvec3 getCenter() const { return center; }
-        double getRadius() const { return radius; }
-
-		Sphere() = delete;
-		Sphere(const Sphere& other) = delete;
-		void operator=(const Sphere& other) = delete;
-	};
-
 	class Material
 	{
 	public:
@@ -127,15 +62,7 @@ namespace pt
 		void operator=(const Renderable& other) = delete;
 	};
 
-	class Scene
-	{
-	public:
-		Scene(){}
-		std::vector<std::shared_ptr<Renderable> >	renderables;
-
-		//Scene(const Scene& other) = delete;
-		void operator=(const Scene& other) = delete;
-	};
+	
 
 	typedef std::shared_ptr<Renderable> RenderableRef;
 	typedef std::shared_ptr<Material>	MaterialRef;
@@ -151,11 +78,7 @@ namespace pt
 		));
 	}
 
-	//clamp
-	inline double clamp(double x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
-	//scale to rgb 255 values with clamp and gamma correction
-	//inline char to255(double x) { return char(pow(clamp(x), 1./2.2) * 255. + 0.5); }
-    inline int to255(double x) { return int(pow(clamp(x), 1./2.2) * 255. + 0.5); }
+	
 
 	/*
 	 * Intersects ray with a scene and keep closest intersection found

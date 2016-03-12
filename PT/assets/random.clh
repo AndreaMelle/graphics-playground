@@ -1,7 +1,7 @@
 static uint xor_shift_rng(uint state)
 {
   state ^= (state << 13);
-  state ^= (state << 17);
+  state ^= (state >> 17);
   state ^= (state << 5);
   return state;
 }

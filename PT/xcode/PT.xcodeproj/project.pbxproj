@@ -24,6 +24,22 @@
 		3C2B6EE71C91D22E00B749C8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C2B6EE61C91D22E00B749C8 /* main.cpp */; };
 		3C2B6EF01C91E78C00B749C8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C2B6EEF1C91E78C00B749C8 /* main.cpp */; };
 		3C2B6EF41C91E81400B749C8 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEFBECA1C8F6C100001F6BB /* OpenCL.framework */; };
+		3C2B6EF71C93115400B749C8 /* CinderApp.icns in Resources */ = {isa = PBXBuildFile; fileRef = BD16B73DD29E47128A06B986 /* CinderApp.icns */; };
+		3C2B6EFC1C93115400B749C8 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEFBECA1C8F6C100001F6BB /* OpenCL.framework */; };
+		3C2B6EFD1C93115400B749C8 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 006D720219952D00008149E2 /* AVFoundation.framework */; };
+		3C2B6EFE1C93115400B749C8 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 006D720319952D00008149E2 /* CoreMedia.framework */; };
+		3C2B6EFF1C93115400B749C8 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		3C2B6F001C93115400B749C8 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0091D8F80E81B9330029341E /* OpenGL.framework */; };
+		3C2B6F011C93115400B749C8 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B10EAFCA74003A9687 /* CoreVideo.framework */; };
+		3C2B6F021C93115400B749C8 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784AF0FF439BC000DE1D7 /* Accelerate.framework */; };
+		3C2B6F031C93115400B749C8 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B00FF439BC000DE1D7 /* AudioToolbox.framework */; };
+		3C2B6F041C93115400B749C8 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B10FF439BC000DE1D7 /* AudioUnit.framework */; };
+		3C2B6F051C93115400B749C8 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B20FF439BC000DE1D7 /* CoreAudio.framework */; };
+		3C2B6F061C93115400B749C8 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B995581B128DF400A5C623 /* IOKit.framework */; };
+		3C2B6F071C93115400B749C8 /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B995591B128DF400A5C623 /* IOSurface.framework */; };
+		3C2B6F0F1C9311A300B749C8 /* PTWeekend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C2B6F0E1C9311A300B749C8 /* PTWeekend.cpp */; };
+		3C2B6F141C9339EC00B749C8 /* ptGeometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C2B6F131C9339EC00B749C8 /* ptGeometry.cpp */; };
+		3C2B6F161C934D4A00B749C8 /* ptRandom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C2B6F151C934D4A00B749C8 /* ptRandom.cpp */; };
 		3C456DCC1C8E0A4B0023127B /* PathTracer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C456DCB1C8E0A4B0023127B /* PathTracer.cpp */; };
 		3CEFBECB1C8F6C100001F6BB /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEFBECA1C8F6C100001F6BB /* OpenCL.framework */; };
 		3CEFBED71C8F705E0001F6BB /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEFBECA1C8F6C100001F6BB /* OpenCL.framework */; };
@@ -92,6 +108,15 @@
 		3C2B6EE81C91E2C100B749C8 /* ptRandom.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ptRandom.h; path = ../include/ptRandom.h; sourceTree = "<group>"; };
 		3C2B6EED1C91E78C00B749C8 /* CLRandom */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLRandom; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C2B6EEF1C91E78C00B749C8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		3C2B6F0B1C93115400B749C8 /* PTWeekend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PTWeekend.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C2B6F0C1C93115400B749C8 /* PT copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "PT copy-Info.plist"; path = "/Users/andreamelle/Workspace/graphics-playground/graphics-playground/PT/xcode/PT copy-Info.plist"; sourceTree = "<absolute>"; };
+		3C2B6F0E1C9311A300B749C8 /* PTWeekend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PTWeekend.cpp; path = ../src/PTWeekend/PTWeekend.cpp; sourceTree = "<group>"; };
+		3C2B6F101C9312EA00B749C8 /* ptUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ptUtil.h; path = ../include/ptUtil.h; sourceTree = "<group>"; };
+		3C2B6F111C93210600B749C8 /* ptTests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ptTests.h; path = ../include/ptTests.h; sourceTree = "<group>"; };
+		3C2B6F121C9321C700B749C8 /* ptGeometry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ptGeometry.h; path = ../include/ptGeometry.h; sourceTree = "<group>"; };
+		3C2B6F131C9339EC00B749C8 /* ptGeometry.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ptGeometry.cpp; path = ../src/ptGeometry.cpp; sourceTree = "<group>"; };
+		3C2B6F151C934D4A00B749C8 /* ptRandom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ptRandom.cpp; path = ../src/ptRandom.cpp; sourceTree = "<group>"; };
+		3C2B6F171C94128E00B749C8 /* ptMaterial.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ptMaterial.h; path = ../include/ptMaterial.h; sourceTree = "<group>"; };
 		3C456DCB1C8E0A4B0023127B /* PathTracer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PathTracer.cpp; path = ../src/PathTracer.cpp; sourceTree = "<group>"; };
 		3C456DCD1C8E0A520023127B /* PathTracer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PathTracer.h; path = ../include/PathTracer.h; sourceTree = "<group>"; };
 		3CEFBECA1C8F6C100001F6BB /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = System/Library/Frameworks/OpenCL.framework; sourceTree = SDKROOT; };
@@ -127,6 +152,25 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C2B6EF41C91E81400B749C8 /* OpenCL.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3C2B6EFB1C93115400B749C8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C2B6EFC1C93115400B749C8 /* OpenCL.framework in Frameworks */,
+				3C2B6EFD1C93115400B749C8 /* AVFoundation.framework in Frameworks */,
+				3C2B6EFE1C93115400B749C8 /* CoreMedia.framework in Frameworks */,
+				3C2B6EFF1C93115400B749C8 /* Cocoa.framework in Frameworks */,
+				3C2B6F001C93115400B749C8 /* OpenGL.framework in Frameworks */,
+				3C2B6F011C93115400B749C8 /* CoreVideo.framework in Frameworks */,
+				3C2B6F021C93115400B749C8 /* Accelerate.framework in Frameworks */,
+				3C2B6F031C93115400B749C8 /* AudioToolbox.framework in Frameworks */,
+				3C2B6F041C93115400B749C8 /* AudioUnit.framework in Frameworks */,
+				3C2B6F051C93115400B749C8 /* CoreAudio.framework in Frameworks */,
+				3C2B6F061C93115400B749C8 /* IOKit.framework in Frameworks */,
+				3C2B6F071C93115400B749C8 /* IOSurface.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,6 +216,8 @@
 			children = (
 				3C456DCB1C8E0A4B0023127B /* PathTracer.cpp */,
 				D8F58B67BFC341109917281C /* PTApp.cpp */,
+				3C2B6F131C9339EC00B749C8 /* ptGeometry.cpp */,
+				3C2B6F151C934D4A00B749C8 /* ptRandom.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -211,6 +257,7 @@
 				3C2B6ECE1C917D1F00B749C8 /* CLInfoSample */,
 				3C2B6EDA1C91AB5200B749C8 /* CLReduction */,
 				3C2B6EED1C91E78C00B749C8 /* CLRandom */,
+				3C2B6F0B1C93115400B749C8 /* PTWeekend.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -218,6 +265,7 @@
 		29B97314FDCFA39411CA2CEA /* PT */ = {
 			isa = PBXGroup;
 			children = (
+				3C2B6F0D1C93116E00B749C8 /* PTWeekend */,
 				01B97315FEAEA392516A2CEA /* Blocks */,
 				29B97315FDCFA39411CA2CEA /* Headers */,
 				080E96DDFE201D6D7F000001 /* Source */,
@@ -228,6 +276,7 @@
 				3C2B6EEE1C91E78C00B749C8 /* CLRandom */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
+				3C2B6F0C1C93115400B749C8 /* PT copy-Info.plist */,
 			);
 			name = PT;
 			sourceTree = "<group>";
@@ -239,6 +288,10 @@
 				3C456DCD1C8E0A520023127B /* PathTracer.h */,
 				F0F0EEFE59314C1FA597C3F0 /* Resources.h */,
 				5259B3B3E342471CA8FCC673 /* PT_Prefix.pch */,
+				3C2B6F101C9312EA00B749C8 /* ptUtil.h */,
+				3C2B6F111C93210600B749C8 /* ptTests.h */,
+				3C2B6F121C9321C700B749C8 /* ptGeometry.h */,
+				3C2B6F171C94128E00B749C8 /* ptMaterial.h */,
 			);
 			name = Headers;
 			sourceTree = "<group>";
@@ -284,6 +337,14 @@
 				3C2B6EEF1C91E78C00B749C8 /* main.cpp */,
 			);
 			path = CLRandom;
+			sourceTree = "<group>";
+		};
+		3C2B6F0D1C93116E00B749C8 /* PTWeekend */ = {
+			isa = PBXGroup;
+			children = (
+				3C2B6F0E1C9311A300B749C8 /* PTWeekend.cpp */,
+			);
+			name = PTWeekend;
 			sourceTree = "<group>";
 		};
 		3CEFBED11C8F704A0001F6BB /* OpenCLSamples */ = {
@@ -347,6 +408,24 @@
 			productName = CLRandom;
 			productReference = 3C2B6EED1C91E78C00B749C8 /* CLRandom */;
 			productType = "com.apple.product-type.tool";
+		};
+		3C2B6EF51C93115400B749C8 /* PTWeekend */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3C2B6F081C93115400B749C8 /* Build configuration list for PBXNativeTarget "PTWeekend" */;
+			buildPhases = (
+				3C2B6EF61C93115400B749C8 /* Resources */,
+				3C2B6EF81C93115400B749C8 /* Sources */,
+				3C2B6EFB1C93115400B749C8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PTWeekend;
+			productInstallPath = "$(HOME)/Applications";
+			productName = PT;
+			productReference = 3C2B6F0B1C93115400B749C8 /* PTWeekend.app */;
+			productType = "com.apple.product-type.application";
 		};
 		3CEFBECF1C8F704A0001F6BB /* OpenCLSamples */ = {
 			isa = PBXNativeTarget;
@@ -423,11 +502,20 @@
 				3C2B6ECD1C917D1F00B749C8 /* CLInfoSample */,
 				3C2B6ED91C91AB5200B749C8 /* CLReduction */,
 				3C2B6EEC1C91E78C00B749C8 /* CLRandom */,
+				3C2B6EF51C93115400B749C8 /* PTWeekend */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3C2B6EF61C93115400B749C8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C2B6EF71C93115400B749C8 /* CinderApp.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8D1107290486CEB800E47090 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -460,6 +548,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C2B6EF01C91E78C00B749C8 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3C2B6EF81C93115400B749C8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C2B6F161C934D4A00B749C8 /* ptRandom.cpp in Sources */,
+				3C2B6F0F1C9311A300B749C8 /* PTWeekend.cpp in Sources */,
+				3C2B6F141C9339EC00B749C8 /* ptGeometry.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -696,6 +794,60 @@
 			};
 			name = Release;
 		};
+		3C2B6F091C93115400B749C8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = PT_Prefix.pch;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INFOPLIST_FILE = "PT copy-Info.plist";
+				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "\"$(CINDER_PATH)/lib/libcinder_d.a\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.libcinder.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYMROOT = ./build;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		3C2B6F0A1C93115400B749C8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_FAST_MATH = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = PT_Prefix.pch;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"NDEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				INFOPLIST_FILE = "PT copy-Info.plist";
+				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "\"$(CINDER_PATH)/lib/libcinder.a\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.libcinder.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = YES;
+				SYMROOT = ./build;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
 		3CEFBED51C8F704A0001F6BB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -881,6 +1033,15 @@
 				3C2B6EF31C91E78C00B749C8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+		};
+		3C2B6F081C93115400B749C8 /* Build configuration list for PBXNativeTarget "PTWeekend" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C2B6F091C93115400B749C8 /* Debug */,
+				3C2B6F0A1C93115400B749C8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		3CEFBED41C8F704A0001F6BB /* Build configuration list for PBXNativeTarget "OpenCLSamples" */ = {
 			isa = XCConfigurationList;
