@@ -11,6 +11,7 @@
 
 #include "glm/glm.hpp"
 #include "ptUtil.h"
+#include "ptRandom.h"
 
 namespace pt
 {
@@ -32,27 +33,86 @@ namespace pt
         Ray();
     };
     
-    /*
-     * A very primitive camera
-     * TODO: change parametrization with the classic view projection model?
-     */
     template <typename T>
     class Camera
     {
     public:
-        Camera();
-        Camera(const ptvec<T>& _origin,
-               const ptvec<T>& _lower_left,
-               const ptvec<T>& _hor,
-               const ptvec<T>& _ver);
+        virtual Ray<T> getRay(const T& u, const T& v, UniformRNG<T>& rng) const = 0;
         
-        Ray<T> getRay(const T& u, const T& v);
+        virtual ptvec<T> getOrigin() const = 0;
+        virtual ptvec<T> getLowerLeft() const = 0;
+        virtual ptvec<T> getHor() const = 0;
+        virtual ptvec<T> getVer() const = 0;
+        
+    };
+    
+    /*
+     * Pinhole Camera
+     */
+    template <typename T>
+    class PinholeCamera : public Camera<T>
+    {
+    public:
+        PinholeCamera();
+        
+        PinholeCamera(const T& vfovdeg,
+                      const T& aspect,
+                      const ptvec<T>& eye,
+                      const ptvec<T>& lookat,
+                      const ptvec<T>& up);
+        
+        PinholeCamera(const ptvec<T>& _origin,
+                      const ptvec<T>& _lower_left,
+                      const ptvec<T>& _hor,
+                      const ptvec<T>& _ver);
+        
+        Ray<T> getRay(const T& u, const T& v, UniformRNG<T>& rng) const;
+        
+        ptvec<T> getOrigin() const { return origin; }
+        ptvec<T> getLowerLeft() const { return lower_left; }
+        ptvec<T> getHor() const { return hor; }
+        ptvec<T> getVer() const { return ver; }
         
     private:
         ptvec<T> origin;
         ptvec<T> lower_left;
         ptvec<T> hor;
         ptvec<T> ver;
+    };
+    
+    /*
+     * Lens Camera
+     */
+    template <typename T>
+    class LensCamera : public Camera<T>
+    {
+    public:
+        LensCamera();
+        
+        LensCamera(const T& vfovdeg,
+                   const T& aspect,
+                   const ptvec<T>& eye,
+                   const ptvec<T>& lookat,
+                   const ptvec<T>& up,
+                   const T& aperture,
+                   const T& focus_dist);
+        
+        Ray<T> getRay(const T& s, const T& t, UniformRNG<T>& rng) const;
+        
+        ptvec<T> getOrigin() const { return origin; }
+        ptvec<T> getLowerLeft() const { return lower_left; }
+        ptvec<T> getHor() const { return hor; }
+        ptvec<T> getVer() const { return ver; }
+        
+    private:
+        ptvec<T> origin;
+        ptvec<T> lower_left;
+        ptvec<T> hor;
+        ptvec<T> ver;
+        ptvec<T> u;
+        ptvec<T> v;
+        ptvec<T> w;
+        T        lens_radius;
     };
     
     typedef Ray<float>  rayf;
@@ -123,22 +183,38 @@ namespace pt
         T           radius;
     };
     
-    template<typename T>
-    ptvec<T> reflect(const ptvec<T>& l, const ptvec<T>& n) { return l - (T)2.0 * glm::dot(l, n) * n; }
+    typedef std::shared_ptr<Sphere<float>>      fSphereRef;
+    
     
     template<typename T>
-    bool refract(const ptvec<T>& l, const ptvec<T>& n, T ni_over_nt, ptvec<T>& out_refracted)
+    ptvec<T> reflect(const ptvec<T>& l, const ptvec<T>& n)
     {
-        float dt = glm::dot(l, n);
-        float d = (T)1.0 - ni_over_nt * ni_over_nt * ((T)1.0 - dt*dt);
-        if(d > 0)
+        return glm::normalize( l - (T)2.0 * glm::dot(l, n) * n);
+    }
+    
+    template<typename T>
+    bool refract(const ptvec<T>& l, const ptvec<T>& n, const T& ni_over_nt, ptvec<T>& out_refracted)
+    {
+        T cosi = glm::dot(l, n);
+        T cost2 = (T)1.0 - ni_over_nt * ni_over_nt * ((T)1.0 - cosi*cosi);
+        if(cost2 > 0)
         {
-            out_refracted = ni_over_nt * (l - n*dt) - n*sqrt(d);
+            //out_refracted = ni_over_nt * l + ((ni_over_nt * cosi - (T)sqrt(std::abs(cost2))) * n);
+            out_refracted = glm::normalize(ni_over_nt * (l - n*cosi) - n*(T)sqrt(cost2));
             return true;
         }
         
         return false;
     }
+    
+    template<typename T>
+    T schlick(const T& cosine, const T& ref_idx)
+    {
+        T r0 = (1 - ref_idx) / (1 + ref_idx);
+        r0 = r0 * r0;
+        return r0 + (1 - r0) * pow((1 - cosine), 5);
+    }
+    
     
 }
 

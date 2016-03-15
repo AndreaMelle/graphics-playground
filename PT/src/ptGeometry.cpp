@@ -34,23 +34,92 @@ Ray<T>::Ray(){}
 template class pt::Ray<double>;
 template class pt::Ray<float>;
 
-/* Ray impl */
+/* Pinhole Camera impl */
 
 template <typename T>
-Camera<T>::Camera() {}
+PinholeCamera<T>::PinholeCamera() {}
 
 template <typename T>
-Camera<T>::Camera(const ptvec<T>& _origin, const ptvec<T>& _lower_left, const ptvec<T>& _hor, const ptvec<T>& _ver)
+PinholeCamera<T>::PinholeCamera(const T& vfovdeg,
+                  const T& aspect,
+                  const ptvec<T>& eye,
+                  const ptvec<T>& lookat,
+                  const ptvec<T>& up)
+{
+    T theta = vfovdeg * M_PI / 180;
+    T half_height = tan(theta / 2);
+    T half_width = aspect * half_height;
+    
+    origin = eye;
+    
+    ptvec<T> u, v, w;
+    
+    w = glm::normalize(eye - lookat);
+    u = glm::normalize(glm::cross(up, w));
+    v = glm::cross(w, u);
+    
+    lower_left = origin - half_width * u - half_height * v - w;
+    hor = 2 * half_width * u;
+    ver = 2 * half_height * v;
+}
+
+template <typename T>
+PinholeCamera<T>::PinholeCamera(const ptvec<T>& _origin, const ptvec<T>& _lower_left, const ptvec<T>& _hor, const ptvec<T>& _ver)
     : origin(_origin), lower_left(_lower_left), hor(_hor), ver(_ver) { }
 
 template <typename T>
-Ray<T> Camera<T>::getRay(const T& u, const T& v)
+Ray<T> PinholeCamera<T>::getRay(const T& u, const T& v, UniformRNG<T>& rng) const
 {
     return Ray<T>(origin, glm::normalize(lower_left + u * hor + v * ver - origin));
 }
 
-template class pt::Camera<double>;
-template class pt::Camera<float>;
+template class pt::PinholeCamera<double>;
+template class pt::PinholeCamera<float>;
+
+/* Lens Camera impl*/
+
+template <typename T>
+LensCamera<T>::LensCamera()
+{
+    
+}
+
+template <typename T>
+LensCamera<T>::LensCamera(const T& vfovdeg,
+           const T& aspect,
+           const ptvec<T>& eye,
+           const ptvec<T>& lookat,
+           const ptvec<T>& up,
+           const T& aperture,
+           const T& focus_dist)
+{
+    lens_radius = aperture / 2.0;
+    T theta = vfovdeg * M_PI / 180;
+    T half_height = tan(theta / 2);
+    T half_width = aspect * half_height;
+    
+    origin = eye;
+    
+    w = glm::normalize(eye - lookat);
+    u = glm::normalize(glm::cross(up, w));
+    v = glm::cross(w, u);
+    
+    lower_left = origin - half_width * focus_dist * u - half_height * focus_dist * v - focus_dist * w;
+    hor = 2 * half_width * focus_dist * u;
+    ver = 2 * half_height * focus_dist * v;
+}
+
+template <typename T>
+Ray<T> LensCamera<T>::getRay(const T& s, const T& t, UniformRNG<T>& rng) const
+{
+    ptvec<T> rd = lens_radius * sample_unit_disk(rng);
+    ptvec<T> offset = u * rd.x + v * rd.y;
+    return Ray<T>(origin + offset,
+                  glm::normalize(lower_left + s * hor + t * ver - origin - offset));
+}
+
+template class pt::LensCamera<double>;
+template class pt::LensCamera<float>;
 
 /* Sphere impl */
 
@@ -138,7 +207,7 @@ bool Sphere<T>::intersect_simple(const pt::Ray<T>& ray, T& t_out, const T& t_min
 template <typename T>
 ptvec<T> Sphere<T>::normalAt(const ptvec<T>& point) const
 {
-    return glm::normalize((point - center));
+    return glm::normalize((point - center) / radius);
 }
 
 template <typename T>

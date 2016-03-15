@@ -3,6 +3,8 @@
 
 #include <random>
 #include "ptUtil.h"
+#include "glm/glm.hpp"
+#include "glm/gtx/norm.hpp"
 
 namespace pt
 {
@@ -69,6 +71,17 @@ namespace pt
     typedef std::function<ptvec<float>(UniformRNG<float>& rng, const ptvec<float>&)> unit_sphere_samplerf;
     typedef std::function<ptvec<double>(UniformRNG<double>& rng, const ptvec<double>&)> unit_sphere_samplerd;
     
+    /* Sample unit disk */
+    template<typename T>
+    static ptvec<T> sample_unit_disk(UniformRNG<T>& rng)
+    {
+        ptvec<T> p;
+        do {
+            p = (T)2.0 * ptvec<T>(rng(), rng(), 0) - ptvec<T>(1,1,0);
+        } while(glm::dot(p, p) >= 1.0);
+        return p;
+    }
+    
     /* Sample unit sphere by sampling unit cube and reject */
     template<typename T>
     static ptvec<T> sample_unit_sphere_rejection(UniformRNG<T>& rng, const ptvec<T>& normal)
@@ -83,7 +96,7 @@ namespace pt
     
     /* Sampling unit hemisphere oriented along a normal by sampling a unit disk and project out */
     template<typename T>
-    static ptvec<T> sampling_unit_hemisphere(UniformRNG<T>& rng, const ptvec<T>& normal)
+    static ptvec<T> sample_unit_hemisphere(UniformRNG<T>& rng, const ptvec<T>& normal)
     {
         T r1 = 2 * M_PI * rng(); // pick a random angle
         T r2 = rng();

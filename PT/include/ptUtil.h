@@ -4,6 +4,8 @@
 #include <iostream>
 #include <ostream>
 #include <exception>
+#include "glm/glm.hpp"
+#include <fstream>
 
 #define PT_PRECISION glm::highp
 #define PT_EPSILON 1e-4

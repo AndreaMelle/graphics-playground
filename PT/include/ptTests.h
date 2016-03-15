@@ -12,58 +12,197 @@
 #include "ptUtil.h"
 #include "ptGeometry.h"
 #include "ptRandom.h"
-
-//#define SAMPLE_HEMI
 #include "ptMaterial.h"
-
-#define MAX_RECURSION 5
-
+#include "ptRendering.h"
 
 namespace pt
 {
     namespace test
     {
-        glm::vec3 color(const Ray<float>& ray,
-                        const PrimitiveList<float>& list,
-                        const std::vector<std::shared_ptr<Material<float>>>& materials,
-                        UniformRNG<float>& rng,
-                        int recursion_depth,
-                        const glm::vec3& bottom_sky_color = glm::vec3(1.0f, 1.0f, 1.0f),
-                        const glm::vec3& top_sky_color = glm::vec3(0.5f, 0.7f, 1.0f))
+        void random_scene(PrimitiveList<float>& list,
+                          std::vector<std::shared_ptr<Material<float>>>& materials)
         {
-            float t;
-            size_t idx;
-            bool hit;
-            //
-            if ((hit = list.intersect_simple(ray, t, idx, 1e-4, MAXFLOAT)))
+            list.clear();
+            materials.clear();
+            
+            PcgHash hash;
+            XORUniformRNG<float> rng;
+            
+            list.push_back(fSphereRef(new Sphere<float>(glm::vec3(0,-1000,0), 1000)));
+            materials.push_back(fMaterialRef(new Lambertian<float>(glm::vec3(0.5f, 0.5f, 0.5f))));
+            
+            for(int a = -11; a < 11; ++a)
             {
-                glm::vec3 p = ray.operator()(t); // where intersects
-                glm::vec3 normal = list[idx]->normalAt(p); // normal at intersection
-                Ray<float> ray_out;
-                glm::vec3 attenuation;
-                
-                if(recursion_depth < MAX_RECURSION && materials[idx]->scatter(ray, p, normal, rng, attenuation, ray_out))
-                    return attenuation * color(ray_out, list, materials, rng, recursion_depth + 1);
-                else
-                    return glm::vec3(0);
+                for(int b = -11; b < 11; ++b)
+                {
+                    rng.seed(hash(a,b));
+                    float choose_mat = rng();
+                    
+                    glm::vec3 center(a + 0.9f * rng(), 0.2, b + 0.9f * rng());
+                    
+                    if(glm::length(center - glm::vec3(4,0.2,0)) > 0.9)
+                    {
+                        if(choose_mat < 0.8)
+                        {
+                            list.push_back(fSphereRef(new Sphere<float>(center, 0.2)));
+                            materials.push_back(fMaterialRef(new Lambertian<float>(glm::vec3(rng()*rng(), rng()*rng(), rng()*rng()))));
+                        }
+                        else if(choose_mat < 0.95)
+                        {
+                            list.push_back(fSphereRef(new Sphere<float>(center, 0.2)));
+                            materials.push_back(fMaterialRef(new Metallic<float>(glm::vec3(0.5f * (1 + rng()), 0.5f * (1 + rng()), 0.5f * (1 + rng())), 0.5 * rng())));
+                        }
+                        else
+                        {
+                            list.push_back(fSphereRef(new Sphere<float>(center, 0.2)));
+                            materials.push_back(fMaterialRef(new Dialectric<float>(1.5f)));
+                        }
+                    }
+                    
+                }
             }
-            else
-            {
-                t = 0.5f * ray.dir.y + 0.5f;
-                return ((1.0f - t) * bottom_sky_color + t * top_sky_color);
-            }
+            
+            list.push_back(fSphereRef(new Sphere<float>(glm::vec3(0,1,0), 1.0)));
+            materials.push_back(fMaterialRef(new Dialectric<float>(1.5f)));
+            
+            list.push_back(fSphereRef(new Sphere<float>(glm::vec3(-4,1,0), 1.0)));
+            materials.push_back(fMaterialRef(new Lambertian<float>(glm::vec3(0.4, 0.2, 0.1))));
+            
+            list.push_back(fSphereRef(new Sphere<float>(glm::vec3(4,1,0), 1.0)));
+            materials.push_back(fMaterialRef(new Metallic<float>(glm::vec3(0.7, 0.6, 0.5), 0.0)));
+            
+        }
+        
+        void test_largescene_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
+        {
+            float* buffer = (float*)malloc(3 * width * height * sizeof(float));
+            
+            ptvec<float> eye(-4,1,-5);
+            ptvec<float> lookat(0,0,0);
+            float dist_focus = glm::length(eye - lookat);
+            float aperture = 2.0f;
+            
+            PinholeCamera<float> cam(60.0f, (float)width/(float)height,
+                                  eye,
+                                  lookat,
+                                     glm::vec3(0,1,0));//,
+                                  //aperture, dist_focus);
+            
+            PrimitiveList<float> list;
+            std::vector<std::shared_ptr<Material<float>>> materials;
+            
+            random_scene(list, materials);
+            
+            XORUniformRNG<float> rng;
+            PcgHash hash;
+            
+            render_frame(width, height, samples, cam, list, materials, buffer, rng, hash);
+            
+            pt::write_ppm<float>(buffer, width, height, 3, true, true, "largescene.ppm");
+            
+            free(buffer);
+        }
+        
+        void test_lenscam_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
+        {
+            float* buffer = (float*)malloc(3 * width * height * sizeof(float));
+
+            ptvec<float> eye(3,3,2);
+            ptvec<float> lookat(0,0,-1);
+            float dist_focus = glm::length(eye - lookat);
+            float aperture = 2.0f;
+            
+            LensCamera<float> cam(20.0f, (float)width/(float)height,
+                                  eye,
+                                  lookat,
+                                  glm::vec3(0,1,0),
+                                  aperture, dist_focus);
+            
+            PrimitiveList<float> list;
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(0,0,-1.0f), 0.5f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(0,-100.5f, -1.0f), 100.0f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(1,0,-1), 0.5f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(-1,0,-1), 0.5f)));
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(-1,0,-1), -0.45f)));
+            
+            std::vector<std::shared_ptr<Material<float>>> materials;
+            materials.push_back(std::shared_ptr<Material<float>>(new Lambertian<float>(glm::vec3(0.8f, 0.3f, 0.3f))));
+            materials.push_back(std::shared_ptr<Material<float>>(new Lambertian<float>(glm::vec3(0.8f, 0.8f, 0.0f))));
+            
+            materials.push_back(std::shared_ptr<Material<float>>(new Metallic<float>(glm::vec3(0.8f, 0.6f, 0.2f), 0.3f)));
+            materials.push_back(std::shared_ptr<Material<float>>(new Dialectric<float>(1.5f)));
+            materials.push_back(std::shared_ptr<Material<float>>(new Dialectric<float>(1.5f)));
+            
+            
+            XORUniformRNG<float> rng;
+            PcgHash hash;
+            
+            render_frame(width, height, samples, cam, list, materials, buffer, rng, hash);
+            
+            pt::write_ppm<float>(buffer, width, height, 3, true, true, "lenses.ppm");
+            
+            free(buffer);
+        }
+        
+        
+        void test_diffuse_metal_glass_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
+        {
+            float* buffer = (float*)malloc(3 * width * height * sizeof(float));
+            
+            //Camera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
+            
+            PinholeCamera<float> cam(60.0f, (float)width/(float)height,
+                              glm::vec3(-2,2,1),
+                              glm::vec3(0,0,-1),
+                              glm::vec3(0,1,0));
+            
+            PrimitiveList<float> list;
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(0,0,-1.0f), 0.5f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(0,-100.5f, -1.0f), 100.0f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(1,0,-1), 0.5f)));
+            
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(-1,0,-1), 0.5f)));
+            list.push_back(std::shared_ptr<Sphere<float>>(
+                                                          new Sphere<float>(glm::vec3(-1,0,-1), -0.45f)));
+            
+            std::vector<std::shared_ptr<Material<float>>> materials;
+            materials.push_back(std::shared_ptr<Material<float>>(new Lambertian<float>(glm::vec3(0.8f, 0.3f, 0.3f))));
+            materials.push_back(std::shared_ptr<Material<float>>(new Lambertian<float>(glm::vec3(0.8f, 0.8f, 0.0f))));
+            
+            materials.push_back(std::shared_ptr<Material<float>>(new Metallic<float>(glm::vec3(0.8f, 0.6f, 0.2f), 0.3f)));
+            materials.push_back(std::shared_ptr<Material<float>>(new Dialectric<float>(1.5f)));
+            materials.push_back(std::shared_ptr<Material<float>>(new Dialectric<float>(1.5f)));
+            
+            
+            XORUniformRNG<float> rng;
+            PcgHash hash;
+            
+            render_frame(width, height, samples, cam, list, materials, buffer, rng, hash);
+            
+            pt::write_ppm<float>(buffer, width, height, 3, true, true, "diffuse_metal_glass.ppm");
+            
+            free(buffer);
         }
         
         void test_diffuse_metal_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
         {
             float* buffer = (float*)malloc(3 * width * height * sizeof(float));
-            float u, v;
-            size_t idx;
-            pt::Ray<float> ray;
             
-            Camera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
-            
-            glm::vec3 dir, c, normal;
+            PinholeCamera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
             
             PrimitiveList<float> list;
             list.push_back(std::shared_ptr<Sphere<float>>(
@@ -89,32 +228,7 @@ namespace pt
             XORUniformRNG<float> rng;
             PcgHash hash;
             
-            float weigth = 1.0f / (float)samples;
-            
-            for(int j = height - 1; j >= 0; --j)
-            {
-                for(int i = 0; i < width; ++i)
-                {
-                    c = glm::vec3(0,0,0);
-                    
-                    rng.seed(hash(i, j));
-                    
-                    for(int s = 0; s < samples; ++s)
-                    {
-                        u = ((float)i + rng()) / (float)width;
-                        v = ((float)j + rng()) / (float)height;
-                        
-                        ray = cam.getRay(u, v);
-                        
-                        c += weigth * color(ray, list, materials, rng, 0);
-                    }
-                    
-                    idx = 3 * ((height - j - 1) * width + i);
-                    buffer[idx + 0] = c.r;
-                    buffer[idx + 1] = c.g;
-                    buffer[idx + 2] = c.b;
-                }
-            }
+            render_frame(width, height, samples, cam, list, materials, buffer, rng, hash);
             
             pt::write_ppm<float>(buffer, width, height, 3, true, true, "diffuse_metal.ppm");
             
@@ -124,13 +238,9 @@ namespace pt
         void test_diffuse_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
         {
             float* buffer = (float*)malloc(3 * width * height * sizeof(float));
-            float u, v;
-            size_t idx;
-            pt::Ray<float> ray;
+
             
-            Camera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
-            
-            glm::vec3 dir, c, normal;
+            PinholeCamera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
             
             PrimitiveList<float> list;
             list.push_back(std::shared_ptr<Sphere<float>>(
@@ -147,37 +257,17 @@ namespace pt
             XORUniformRNG<float> rng;
             PcgHash hash;
             
-            float weigth = 1.0f / (float)samples;
+            render_frame(width, height, samples, cam, list, materials, buffer, rng, hash);
             
-            for(int j = height - 1; j >= 0; --j)
-            {
-                for(int i = 0; i < width; ++i)
-                {
-                    c = glm::vec3(0,0,0);
-                    
-                    rng.seed(hash(i, j));
-                    
-                    for(int s = 0; s < samples; ++s)
-                    {
-                        u = ((float)i + rng()) / (float)width;
-                        v = ((float)j + rng()) / (float)height;
-                        
-                        ray = cam.getRay(u, v);
-                        
-                        c += weigth * color(ray, list, materials, rng, 0);
-                    }
-                    
-                    idx = 3 * ((height - j - 1) * width + i);
-                    buffer[idx + 0] = c.r;
-                    buffer[idx + 1] = c.g;
-                    buffer[idx + 2] = c.b;
-                }
-            }
-            
-            pt::write_ppm<float>(buffer, width, height, 3, true, true, "diffuse.ppm");
+            pt::write_ppm<float>(buffer, width, height, 3, true, true, "diffuse_iter.ppm");
             
             free(buffer);
         }
+        
+        
+        /*
+         * Initial tests, no materials
+         */
         
         
         void test_aa_ppm(unsigned int width, unsigned int height, unsigned int samples = 8)
@@ -187,7 +277,7 @@ namespace pt
             size_t idx;
             pt::Ray<float> ray;
             
-            Camera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
+            PinholeCamera<float> cam(glm::vec3(0,0,0), glm::vec3(-2.0f,-1.5f,-1.0f), glm::vec3(4.0f, 0, 0), glm::vec3(0, 3.0f, 0));
             
             glm::vec3 dir, color, normal;
             
@@ -216,7 +306,7 @@ namespace pt
                         u = ((float)i + rng()) / (float)width;
                         v = ((float)j + rng()) / (float)height;
                         
-                        ray = cam.getRay(u, v);
+                        ray = cam.getRay(u, v, rng);
                         
                         bool hit = list.intersect_simple(ray, t, idx);
                         
