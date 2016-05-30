@@ -24,18 +24,20 @@ typedef struct PinholeCamera
   float3 ver;
 } PinholeCamera;
 
-typedef struct Sphere
-{
-  float3 center;
-  float radius;
-} Sphere;
+typedef float4 Sphere; //center radius
+
+// typedef struct Sphere
+// {
+//   float3 center;
+//   float radius;
+// } Sphere;
 
 static float3 ray_pointat(Ray* ray, float t)
 {
   return ray->origin + t * ray->dir;
 }
 
-static Ray pinhole_cam_ray(__constant PinholeCamera* cam, float2 uv)
+inline Ray pinhole_cam_ray(__constant PinholeCamera* cam, float2 uv)
 {
     Ray ray;
     ray.origin = cam->origin;
@@ -45,10 +47,10 @@ static Ray pinhole_cam_ray(__constant PinholeCamera* cam, float2 uv)
 
 static bool sphere_intersect(__constant Sphere* sphere, Ray* ray, float* t_out)
 {
-    float3 sphere_to_o = ray->origin - sphere->center;
+    float3 sphere_to_o = ray->origin - sphere->xyz;
     float a = dot(ray->dir, ray->dir);
     float b = dot(sphere_to_o, ray->dir);
-    float c = dot(sphere_to_o, sphere_to_o) - sphere->radius * sphere->radius;
+    float c = dot(sphere_to_o, sphere_to_o) - sphere->w * sphere->w;
     float det = b * b - a * c;
 
     if(det > 0)
@@ -65,7 +67,7 @@ static bool sphere_intersect(__constant Sphere* sphere, Ray* ray, float* t_out)
 
 static float3 sphere_normal_at(__constant Sphere* sphere, float3 point)
 {
-  return normalize((point - sphere->center) / sphere->radius);
+  return normalize((point - sphere->xyz) / sphere->w);
 }
 
 static bool sphere_list_intersect(__constant Sphere* primitive_list,
@@ -92,6 +94,11 @@ static bool sphere_list_intersect(__constant Sphere* primitive_list,
     }
 
     return has_hit;
+}
+
+static float3 pt_reflect(float3 l, float3 n)
+{
+  return normalize(l - 2.0f * dot(l, n) * n);
 }
 
 #endif //__CL_GEOMETRY_H__

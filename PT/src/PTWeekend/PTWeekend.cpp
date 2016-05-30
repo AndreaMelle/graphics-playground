@@ -45,28 +45,24 @@ private:
     
     size_t local_size;
     size_t local_width;
+    size_t local_height;
     size_t img_width;
     size_t img_height;
+    
+    size_t true_img_width;
+    size_t true_img_height;
     
 };
 
 void PTWeekend::setup()
 {
+    
     /* Scene data */
     camera.lookAt(glm::vec3(-2,1,1), vec3(0, 0, -1.0f), vec3(0,1,0));
     camera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 100.0f );
     cameraUI = CameraUi(&camera, getWindow());
     
-    std::vector<fSphereRef> list;
-    std::vector<fLambertianRef> materials;
     
-    list.push_back(fSphereRef(new Sphere<float>(glm::vec3(1.0,0,-1.0f), 0.5f)));
-    list.push_back(fSphereRef(new Sphere<float>(glm::vec3(-1.0,0,-1.0f), 0.5f)));
-    list.push_back(fSphereRef(new Sphere<float>(glm::vec3(0,-100.5f, 1.0f), 100.0f)));
-    
-    materials.push_back(fLambertianRef(new Lambertian<float>(glm::vec3(1.0f, 0, 0))));
-    materials.push_back(fLambertianRef(new Lambertian<float>(glm::vec3(0, 1, 0))));
-    materials.push_back(fLambertianRef(new Lambertian<float>(glm::vec3(0.5f))));
     
     glm::vec3 bottom_sky_color(1.0, 1.0, 1.0);
     glm::vec3 top_sky_color(0.5, 0.7, 1.0);
@@ -104,7 +100,7 @@ void PTWeekend::setup()
     std::string program_str(std::istreambuf_iterator<char>(program_file), (std::istreambuf_iterator<char>()));
     cl::Program::Sources sources(1, std::make_pair(program_str.c_str(), program_str.length() + 1));
     program = cl::Program(context, sources);
-    clStatus = program.build({device}, "-I ../../../assets/");
+    clStatus = program.build({device}, "-I ../../../assets/ -cl-denorms-are-zero");
     
     if (clStatus != CL_SUCCESS)
     {
@@ -123,9 +119,19 @@ void PTWeekend::setup()
     
     img_width = getWindowWidth();
     img_height = getWindowHeight();
+    
+    true_img_width = getWindowWidth();
+    true_img_height = getWindowHeight();
+    
     local_size = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(); //TODO: throws
     local_width = (size_t)pow(2, ceilf(log2f((floorf(sqrtf(local_size))))));
-    unsigned int samples = 8;
+    local_height = local_size / local_width;
+    
+    img_width = ceilf((float)img_width / (float)local_width) * local_width;
+    img_height = ceilf((float)img_height / (float)local_height) * local_height;
+    
+    
+    unsigned int samples = 16;
     
     /* Create GL texture and CL wrapper */
     glGenTextures(1, &imgTexName);
@@ -157,8 +163,31 @@ void PTWeekend::setup()
     
     /* Upload scene (static) */
     
-    pt_assert(cl_set_sphere_and_material_list(list, materials, primitive_buffer, material_buffer, cmd_queue),
-              "Could not fill primitives or materials buffers");
+    size_t sceneObjectCount = 5;
+    cl_sphere* primitive_array = (cl_sphere*)malloc(sceneObjectCount * sizeof(cl_sphere));
+    cl_material* material_array = (cl_material*)malloc(sceneObjectCount * sizeof(cl_material));
+    
+    primitive_array[0] = cl_make_sphere(glm::vec3(1, 0, -1), 0.5f);
+    material_array[0] = cl_make_material(pt::ColorHex_to_RGBfloat<float>("0x730202"), 0, MAT_LAMBERTIAN);
+    
+    primitive_array[1] = cl_make_sphere(glm::vec3(-1, 0, -1), 0.5f);
+    material_array[1] = cl_make_material(pt::ColorHex_to_RGBfloat<float>("0xF89000"), 0, MAT_LAMBERTIAN);
+    
+    primitive_array[2] = cl_make_sphere(glm::vec3(0, 0, 0), 0.5f);
+    material_array[2] = cl_make_material(pt::ColorHex_to_RGBfloat<float>("0x97A663"), 0.1f, MAT_METALLIC);
+    
+    primitive_array[3] = cl_make_sphere(glm::vec3(0, 0, -2), 0.5f);
+    material_array[3] = cl_make_material(glm::vec3(0.8f, 0.6f, 0.2f), 0.3f, MAT_METALLIC);
+    
+    primitive_array[4] = cl_make_sphere(glm::vec3(0,-100.5f, 1.0f), 100.0f);
+    material_array[4] = cl_make_material(glm::vec3(0.5f), 0, MAT_LAMBERTIAN);
+    
+    clStatus = cmd_queue.enqueueWriteBuffer(primitive_buffer, CL_TRUE, 0, sceneObjectCount * sizeof(cl_sphere), primitive_array, NULL, NULL);
+    pt_assert(clStatus, "Could not fill primitive buffer");
+    
+    clStatus = cmd_queue.enqueueWriteBuffer(material_buffer, CL_TRUE, 0, sceneObjectCount * sizeof(cl_material), material_array, NULL, NULL);
+    pt_assert(clStatus, "Could not fill material buffer");
+    
     pt_assert(cl_set_skycolors(bottom_sky_color, top_sky_color, sky_buffer, cmd_queue),
               "Could not fill sky buffer");
     
@@ -166,17 +195,16 @@ void PTWeekend::setup()
     pt_assert(clStatus, "Could not set primitive buffer argument");
     
     clStatus = kernel.setArg(2, material_buffer);
-    pt_assert(clStatus, "Could not set primitive buffer argument");
+    pt_assert(clStatus, "Could not set material buffer argument");
     
     clStatus = kernel.setArg(3, sky_buffer);
-    pt_assert(clStatus, "Could not set primitive buffer argument");
+    pt_assert(clStatus, "Could not set sky buffer argument");
     
-    clStatus = kernel.setArg(4, list.size());
-    pt_assert(clStatus, "Could not set primitive count argument");
+    clStatus = kernel.setArg(4, sceneObjectCount);
+    pt_assert(clStatus, "Could not set primitive count count argument");
     
     clStatus = kernel.setArg(5, img_buffer[0]);
     pt_assert(clStatus, "Could not set img buffer argument");
-    
     
     clStatus = kernel.setArg(6, samples);
     pt_assert(clStatus, "Could not set samples argument");
@@ -221,10 +249,12 @@ void PTWeekend::draw()
     
     cl::Event profiling_evt;
     
+    
+    
     clStatus = cmd_queue.enqueueNDRangeKernel(kernel,
                                               cl::NDRange(0,0),
                                               cl::NDRange(img_width, img_height),
-                                              cl::NDRange(local_width,local_size / local_width),
+                                              cl::NDRange(local_width,local_height),
                                               NULL,
                                               &profiling_evt);
     profiling_evt.wait();

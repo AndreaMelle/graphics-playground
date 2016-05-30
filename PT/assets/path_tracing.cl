@@ -2,10 +2,10 @@
 #define MAX_RECURSION 5
 //#define INVERT
 
-#include "random.clh"
-#include "utils.clh"
-#include "geometry.clh"
-#include "rendering.clh"
+#include "random.cl"
+#include "utils.cl"
+#include "geometry.cl"
+#include "rendering.cl"
 
 __kernel
 void path_tracing(__constant struct PinholeCamera* cam,
@@ -16,11 +16,12 @@ void path_tracing(__constant struct PinholeCamera* cam,
                   write_only image2d_t out_buffer,
                   uint samples)
 {
-  //idx = 3 * ((height - y - 1) * width + x);
+  
+
   int2 size  = (int2)(get_global_size(0), get_global_size(1));
   int2 coord = (int2)(get_global_id(0), get_global_id(1));
 
-  uint seed = hash2(coord.x, coord.y); //rng01(&seed)
+  uint seed = hash2(coord.x, coord.y);
   float3 out_color = (float3)(0,0,0);
   float weigth = 1.0f / (float)samples;
 
@@ -39,7 +40,9 @@ void path_tracing(__constant struct PinholeCamera* cam,
       uv.y = 1.0f - uv.y;
 #endif
       ray = pinhole_cam_ray(cam, uv);
-      out_color += weigth * radiance_iterative(&ray, primitive_list, material_list, count, &seed, sky);
+      out_color = fma(weigth, radiance_iterative(&ray, primitive_list, material_list, count, &seed, sky), out_color);
+      // out_color += weigth * radiance_iterative(&ray, primitive_list, material_list, count, &seed, sky), out_color);
+      // out_color += weigth * radiance_iterative_recursion_map(&ray, primitive_list, material_list, count, &seed);
   }
 
   // uint4 pixel = (uint4)(to8U_C1_gamma(out_color.r), to8U_C1_gamma(out_color.g), to8U_C1_gamma(out_color.b), 255);

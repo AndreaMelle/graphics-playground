@@ -18,6 +18,40 @@
 
 #define MAX_PRIMITIVES 10
 
+#ifdef DEBUG
+
+#define PTCL_ASSERT(status, errorMsg) if (status != CL_SUCCESS) { \
+std::cerr << errorMsg << "\n"; \
+exit(EXIT_FAILURE); \
+} \
+
+#define PTCL_SAFE_ENQUEUE_WRITE_BUFFER(errorMsg, cmd_queue, ...) if(cmd_queue.enqueueWriteBuffer(__VA_ARGS__) != CL_SUCCESS) { \
+std::cerr << errorMsg << "\n"; \
+exit(EXIT_FAILURE); \
+} \
+
+#define PTCL_SAFE_SET_ARG(errorMsg, kernel, ...) if(kernel.setArg(__VA_ARGS__) != CL_SUCCESS) { \
+std::cerr << errorMsg << "\n"; \
+exit(EXIT_FAILURE); \
+} \
+
+#define PTCL_SAFE_OP(errorMsg, op, target, ...) if(target.op(__VA_ARGS__) != CL_SUCCESS) { \
+std::cerr << errorMsg << "\n"; \
+exit(EXIT_FAILURE); \
+} \
+
+#else
+
+#define PTCL_ASSERT(status, errorMsg)
+
+#define PTCL_SAFE_ENQUEUE_WRITE_BUFFER(errorMsg, cmd_queue, ...) cmd_queue.enqueueWriteBuffer(__VA_ARGS__);
+
+#define PTCL_SAFE_SET_ARG(errorMsg, kernel, ...) kernel.setArg(__VA_ARGS__);
+
+#endif
+
+
+
 void pt_assert(const cl_int& status, const std::string& errorMsg)
 {
     if (status != CL_SUCCESS)
@@ -37,19 +71,46 @@ typedef struct cl_pinhole_cam
     cl_float3 ver;
 } cl_pinhole_cam;
 
-/*
- * sizeof(cl_sphere) declared with __attribute__((packed)) -> 20 (16 + 4)
- * sizeof(cl_sphere) -> 32 (16 + 4 + 12) 12 bytes padding...
- */
-typedef struct cl_sphere
+cl_pinhole_cam cl_make_pinhole_cam(const pt::PinholeCamera<float>& cam)
 {
-    cl_float3 center;
-    cl_float radius;
-} cl_sphere;
+    cl_pinhole_cam cl_cam;
+    
+    memcpy(&cl_cam.origin, glm::value_ptr(cam.getOrigin()), 3 * sizeof(float));
+    memcpy(&cl_cam.lower_left, glm::value_ptr(cam.getLowerLeft()), 3 * sizeof(float));
+    memcpy(&cl_cam.hor, glm::value_ptr(cam.getHor()), 3 * sizeof(float));
+    memcpy(&cl_cam.ver, glm::value_ptr(cam.getVer()), 3 * sizeof(float));
+    
+    return cl_cam;
+}
+
+typedef struct cl_ray
+{
+    cl_float3 origin;
+    cl_float3 dir;
+} cl_ray;
+
+/*
+ * This takes half the memory of the "naive" implementation with cl_float3 and cl_float
+ * size is 16 bytes here
+ */
+typedef cl_float4 cl_sphere; // (center.x, center.y, center.z, radius)
+
+inline void pack_cl_sphere(const pt::fSphereRef& sphere, cl_sphere& out_sphere)
+{
+    memcpy(&out_sphere, glm::value_ptr(sphere->getCenter()), 3 * sizeof(float));
+    out_sphere.s[3] = sphere->getRadius();
+}
+
+typedef cl_float4 cl_color;
+
+#define MAT_LAMBERTIAN 1
+#define MAT_DIALECTRIC 2
+#define MAT_METALLIC 3
 
 typedef struct cl_material
 {
-    cl_float3 albedo;
+    cl_color albedo; //alpha channel used for extra scalar param with value being type dependent
+    cl_char  type;
 } cl_material;
 
 typedef struct cl_sky_material
@@ -61,7 +122,7 @@ typedef struct cl_sky_material
 cl_int cl_set_skycolors(const glm::vec3& sky_bottom,
                         const glm::vec3& sky_top,
                         cl::Buffer& sky_buffer,
-                        cl::CommandQueue& cmd_queue)
+                        const cl::CommandQueue& cmd_queue)
 {
     cl_sky_material sky;
     memcpy(&sky.bottom, glm::value_ptr(sky_bottom), 3 * sizeof(float));
@@ -69,48 +130,62 @@ cl_int cl_set_skycolors(const glm::vec3& sky_bottom,
     return cmd_queue.enqueueWriteBuffer(sky_buffer, CL_TRUE, 0, sizeof(cl_sky_material), (void*)&sky, NULL, NULL);
 }
 
-cl_int cl_set_sphere_and_material_list(const std::vector<pt::fSphereRef>& primitives,
-                                       const std::vector<pt::fLambertianRef>& materials,
-                                       cl::Buffer& primitives_buffer,
-                                       cl::Buffer& materials_buffer,
-                                       const cl::CommandQueue& cmd_queue)
+cl_sphere cl_make_sphere(const glm::vec3& center, const float& radius)
 {
-    cl_int clStatus;
-    if(primitives.size() != materials.size()) return CL_INVALID_VALUE;
-    
-    unsigned int listCount = primitives.size();
-    
-    if(listCount > MAX_PRIMITIVES) return CL_INVALID_VALUE;
-    
-    cl_sphere* primitive_array = (cl_sphere*)malloc(listCount * sizeof(cl_sphere));
-    cl_material* material_array = (cl_material*)malloc(listCount * sizeof(cl_material));
-    
-    for(int i = 0; i < listCount; ++i)
-    {
-        cl_sphere sp;
-        memcpy(&sp.center, glm::value_ptr(primitives[i]->getCenter()), 3 * sizeof(float));
-        sp.radius = primitives[i]->getRadius();
-        memcpy(&primitive_array[i], &sp, sizeof(cl_sphere));
-    }
-    
-    for(int i = 0; i < listCount; ++i)
-    {
-        cl_material mat;
-        memcpy(&mat.albedo, glm::value_ptr(materials[i]->getAlbedo()), 3 * sizeof(float));
-        memcpy(&material_array[i], &mat, sizeof(cl_material));
-    }
-    
-    cmd_queue.enqueueWriteBuffer(primitives_buffer, CL_TRUE, 0, listCount * sizeof(cl_sphere), primitive_array, NULL, NULL);
-    if (clStatus != CL_SUCCESS) return clStatus;
-    
-    cmd_queue.enqueueWriteBuffer(materials_buffer, CL_TRUE, 0, listCount * sizeof(cl_material), material_array, NULL, NULL);
-    if (clStatus != CL_SUCCESS) return clStatus;
-    
-    free(primitive_array);
-    free(material_array);
-    
-    return CL_SUCCESS;
+    cl_sphere sp;
+    memcpy(&sp, glm::value_ptr(center), 3 * sizeof(float));
+    sp.s[3] = radius;
+    return sp;
 }
+
+cl_material cl_make_material(const glm::vec3& color, const float& scalar_param_1, char type)
+{
+    cl_material mat;
+    memcpy(&mat, glm::value_ptr(color), 3 * sizeof(float));
+    mat.albedo.s[3] = scalar_param_1;
+    mat.type = type;
+    return mat;
+}
+
+//cl_int cl_set_sphere_and_material_list(const std::vector<pt::fSphereRef>& primitives,
+//                                       const std::vector<pt::fLambertianRef>& materials,
+//                                       cl::Buffer& primitives_buffer,
+//                                       cl::Buffer& materials_buffer,
+//                                       const cl::CommandQueue& cmd_queue)
+//{
+//    cl_int clStatus;
+//    if(primitives.size() != materials.size()) return CL_INVALID_VALUE;
+//    
+//    unsigned int listCount = primitives.size();
+//    
+//    if(listCount > MAX_PRIMITIVES) return CL_INVALID_VALUE;
+//    
+//    cl_sphere* primitive_array = (cl_sphere*)malloc(listCount * sizeof(cl_sphere));
+//    cl_material* material_array = (cl_material*)malloc(listCount * sizeof(cl_material));
+//    
+//    cl_sphere sp;
+//    cl_material mat;
+//    
+//    for(int i = 0; i < listCount; ++i)
+//    {
+//        pack_cl_sphere(primitives[i], sp);
+//        memcpy(&primitive_array[i], &sp, sizeof(cl_sphere));
+//        
+//        memcpy(&mat.albedo, glm::value_ptr(materials[i]->getAlbedo()), 3 * sizeof(float));
+//        memcpy(&material_array[i], &mat, sizeof(cl_material));
+//    }
+//    
+//    clStatus = cmd_queue.enqueueWriteBuffer(primitives_buffer, CL_TRUE, 0, listCount * sizeof(cl_sphere), primitive_array, NULL, NULL);
+//    if (clStatus != CL_SUCCESS) return clStatus;
+//    
+//    clStatus = cmd_queue.enqueueWriteBuffer(materials_buffer, CL_TRUE, 0, listCount * sizeof(cl_material), material_array, NULL, NULL);
+//    if (clStatus != CL_SUCCESS) return clStatus;
+//    
+//    free(primitive_array);
+//    free(material_array);
+//    
+//    return CL_SUCCESS;
+//}
 
 cl_int cl_set_pinhole_cam_arg(const glm::vec3& origin,
                               const glm::vec3& lower_left,
